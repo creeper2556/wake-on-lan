@@ -6,3 +6,5 @@ services:
     network_mode: host
     volumes:
       - ./data:/app/data
+    environment:
+      - PORT=3579

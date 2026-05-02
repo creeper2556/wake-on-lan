@@ -16,7 +16,7 @@
 docker compose up -d
 ```
 
-访问 `http://<你的IP>:3000`，默认 `admin / password`。登录后改 `data/auth.json`。
+访问 `http://<你的IP>:3579`，默认 `admin / password`。登录后改 `data/auth.json`。
 
 ## 手动部署
 
