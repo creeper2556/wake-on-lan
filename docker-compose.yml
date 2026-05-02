@@ -1,0 +1,10 @@
+services:
+  wol:
+    build: .
+    container_name: wake-on-lan
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      - PORT=3000
+    volumes:
+      - ./data:/app/data
