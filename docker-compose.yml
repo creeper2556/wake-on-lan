@@ -4,6 +4,9 @@ services:
     container_name: wake-on-lan
     restart: unless-stopped
     network_mode: host
+    cap_add:
+      - NET_RAW
+      - NET_ADMIN
     volumes:
       - ./data:/app/data
     environment:

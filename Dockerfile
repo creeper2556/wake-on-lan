@@ -10,20 +10,20 @@ RUN npm run build
 FROM node:20-alpine
 WORKDIR /app
 
-# ping required for network scanning / online check
-RUN apk add --no-cache iputils
+# ping for scanning, su-exec for permissions
+RUN apk add --no-cache iputils su-exec
 
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/next.config.ts ./next.config.ts
+COPY --from=builder /app/public ./public
 
 ENV NODE_ENV=production
 ENV PORT=3579
 
-# data/ volume for devices.json + auth.json
 VOLUME ["/app/data"]
 
-EXPOSE 3000
+EXPOSE 3579
 
 CMD ["npm", "start"]
