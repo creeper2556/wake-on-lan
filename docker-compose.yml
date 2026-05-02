@@ -1,10 +1,8 @@
 services:
   wol:
-    build: .
+    image: ghcr.io/creeper2556/wake-on-lan:latest
     container_name: wake-on-lan
     restart: unless-stopped
     network_mode: host
-    environment:
-      - PORT=3000
     volumes:
       - ./data:/app/data
