@@ -544,7 +544,14 @@ export default function Home() {
             <p className="text-zinc-400 text-sm text-center">暂无设备</p>
           ) : (
             <ul className="space-y-2">
-              {devices.map((d) => (
+              {[...devices]
+                .sort((a, b) => {
+                  const aOnline = a.ip && onlineMap[a.ip] ? 1 : 0
+                  const bOnline = b.ip && onlineMap[b.ip] ? 1 : 0
+                  if (aOnline !== bOnline) return bOnline - aOnline
+                  return a.name.localeCompare(b.name)
+                })
+                .map((d) => (
                 <li
                   key={d.id}
                   className={`py-2 px-3 border border-zinc-100 dark:border-zinc-800 rounded-md ${editingDeviceId === d.id ? "ring-2 ring-zinc-300 dark:ring-zinc-600" : ""}`}
