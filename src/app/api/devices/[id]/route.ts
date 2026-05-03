@@ -32,8 +32,26 @@ export async function PATCH(
     return NextResponse.json({ error: "设备不存在" }, { status: 404 })
   }
 
+  let changed = false
+
+  if (body.name !== undefined && typeof body.name === "string" && body.name.trim()) {
+    device.name = body.name.trim()
+    changed = true
+  }
   if (body.ip !== undefined) {
     device.ip = body.ip || undefined
+    changed = true
+  }
+  if (body.mac !== undefined && typeof body.mac === "string" && /^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/.test(body.mac)) {
+    // 检查 MAC 是否与其他设备重复
+    if (devices.some((d) => d.id !== id && d.mac.toLowerCase() === body.mac.toLowerCase())) {
+      return NextResponse.json({ error: "该 MAC 地址已被其他设备使用" }, { status: 409 })
+    }
+    device.mac = body.mac.toLowerCase()
+    changed = true
+  }
+
+  if (changed) {
     device.updatedAt = new Date().toISOString()
   }
 

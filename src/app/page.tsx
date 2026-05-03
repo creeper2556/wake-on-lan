@@ -51,6 +51,11 @@ export default function Home() {
   const [showManualAdd, setShowManualAdd] = useState(false)
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const [editingDeviceId, setEditingDeviceId] = useState<string | null>(null)
+  const [editName, setEditName] = useState("")
+  const [editMac, setEditMac] = useState("")
+  const [editIp, setEditIp] = useState("")
+  const [saving, setSaving] = useState(false)
 
   // Online status check
   const checkOnline = useCallback(async (devs: Device[]) => {
@@ -195,6 +200,35 @@ export default function Home() {
     setEditingName(`${entry.mac || entry.ip}-${idx}`)
     setCustomName(entry.label || entry.hostname || entry.ip || "")
     setCustomMac(entry.mac || "")
+  }
+
+  const startEdit = (d: Device) => {
+    setEditingDeviceId(d.id)
+    setEditName(d.name)
+    setEditMac(d.mac)
+    setEditIp(d.ip || "")
+    setMenuOpenId(null)
+  }
+
+  const saveEdit = async (id: string) => {
+    setSaving(true)
+    const res = await fetch(`/api/devices/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: editName.trim(),
+        mac: editMac.trim(),
+        ip: editIp.trim() || undefined,
+      }),
+    })
+    if (res.ok) {
+      setEditingDeviceId(null)
+      fetchWithStatus()
+    } else {
+      const data = await res.json()
+      setError(data.error)
+    }
+    setSaving(false)
   }
 
   const deleteDevice = async (id: string) => {
@@ -513,56 +547,99 @@ export default function Home() {
               {devices.map((d) => (
                 <li
                   key={d.id}
-                  className="flex items-center justify-between py-2 px-3 border border-zinc-100 dark:border-zinc-800 rounded-md"
+                  className={`py-2 px-3 border border-zinc-100 dark:border-zinc-800 rounded-md ${editingDeviceId === d.id ? "ring-2 ring-zinc-300 dark:ring-zinc-600" : ""}`}
                 >
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                          d.ip && onlineMap[d.ip] !== undefined
-                            ? onlineMap[d.ip]
-                              ? "bg-green-500"
-                              : "bg-zinc-300 dark:bg-zinc-600"
-                            : "bg-zinc-200 dark:bg-zinc-700"
-                        }`}
+                  {editingDeviceId === d.id ? (
+                    <div className="space-y-2">
+                      <input
+                        type="text"
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        placeholder="设备名称"
+                        className="w-full px-2 py-1 border border-zinc-200 dark:border-zinc-800 rounded bg-transparent text-sm outline-none focus:border-zinc-400"
+                        autoFocus
                       />
-                      <p className="text-sm font-medium">{d.name}</p>
+                      <input
+                        type="text"
+                        value={editMac}
+                        onChange={(e) => setEditMac(formatMacInput(e.target.value))}
+                        placeholder="MAC 地址"
+                        className="w-full px-2 py-1 border border-zinc-200 dark:border-zinc-800 rounded bg-transparent text-xs font-mono outline-none focus:border-zinc-400"
+                      />
+                      <input
+                        type="text"
+                        value={editIp}
+                        onChange={(e) => setEditIp(e.target.value)}
+                        placeholder="IP 地址"
+                        className="w-full px-2 py-1 border border-zinc-200 dark:border-zinc-800 rounded bg-transparent text-xs font-mono outline-none focus:border-zinc-400"
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => saveEdit(d.id)}
+                          disabled={saving}
+                          className="px-3 py-1 text-xs rounded-md bg-foreground text-background font-medium hover:opacity-90 disabled:opacity-50"
+                        >
+                          {saving ? "保存中..." : "保存"}
+                        </button>
+                        <button
+                          onClick={() => setEditingDeviceId(null)}
+                          className="px-3 py-1 text-xs rounded-md bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 font-medium hover:opacity-80"
+                        >
+                          取消
+                        </button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 mt-0.5 ml-4">
-                      {d.ip && (
-                        <p className="text-xs text-zinc-500 font-mono">{d.ip}</p>
-                      )}
-                      <p className="text-xs text-zinc-400 font-mono">{d.mac}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => wakeDevice(d.id)}
-                      disabled={wakingId === d.id}
-                      className="px-3 py-1 text-xs rounded-md bg-green-600 text-white hover:bg-green-700 transition-colors disabled:opacity-50"
-                    >
-                      {wakingId === d.id ? "..." : "唤醒"}
-                    </button>
-                    <div className="relative">
-                      <button
-                        onClick={() => {
-                          setMenuOpenId(menuOpenId === d.id ? null : d.id)
-                          setConfirmDeleteId(null)
-                        }}
-                        className="px-2 py-1 rounded-md text-sm text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-                      >
-                        ···
-                      </button>
-                      {menuOpenId === d.id && (
-                        <>
-                          <div
-                            className="fixed inset-0 z-10"
-                            onClick={() => {
-                              setMenuOpenId(null)
-                              setConfirmDeleteId(null)
-                            }}
-                          />
-                          <div className="absolute right-0 top-full mt-1 z-20 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-md shadow-lg py-1 min-w-[120px]">
+                  ) : (
+                    <>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                                d.ip && onlineMap[d.ip] !== undefined
+                                  ? onlineMap[d.ip]
+                                    ? "bg-green-500"
+                                    : "bg-zinc-300 dark:bg-zinc-600"
+                                  : "bg-zinc-200 dark:bg-zinc-700"
+                              }`}
+                            />
+                            <p className="text-sm font-medium">{d.name}</p>
+                          </div>
+                          <div className="flex items-center gap-2 mt-0.5 ml-4">
+                            {d.ip && (
+                              <p className="text-xs text-zinc-500 font-mono">{d.ip}</p>
+                            )}
+                            <p className="text-xs text-zinc-400 font-mono">{d.mac}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => wakeDevice(d.id)}
+                            disabled={wakingId === d.id}
+                            className="px-3 py-1 text-xs rounded-md bg-green-600 text-white hover:bg-green-700 transition-colors disabled:opacity-50"
+                          >
+                            {wakingId === d.id ? "..." : "唤醒"}
+                          </button>
+                          <div className="relative">
+                            <button
+                              onClick={() => {
+                                setMenuOpenId(menuOpenId === d.id ? null : d.id)
+                                setConfirmDeleteId(null)
+                              }}
+                              className="px-2 py-1 rounded-md text-sm text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                            >
+                              ···
+                            </button>
+                            {menuOpenId === d.id && (
+                              <>
+                                <div
+                                  className="fixed inset-0 z-10"
+                                  onClick={() => {
+                                    setMenuOpenId(null)
+                                    setConfirmDeleteId(null)
+                                  }}
+                                />
+                                <div className="absolute right-0 top-full mt-1 z-20 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-md shadow-lg py-1 min-w-[120px]">
                             {confirmDeleteId === d.id ? (
                               <div className="px-2 py-1 space-y-1">
                                 <p className="text-xs text-zinc-500 px-1">确认删除？</p>
@@ -586,18 +663,29 @@ export default function Home() {
                                 </div>
                               </div>
                             ) : (
-                              <button
-                                onClick={() => setConfirmDeleteId(d.id)}
-                                className="w-full text-left px-3 py-1.5 text-sm text-red-600 dark:text-red-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-                              >
-                                删除
-                              </button>
+                              <>
+                                <button
+                                  onClick={() => startEdit(d)}
+                                  className="w-full text-left px-3 py-1.5 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                                >
+                                  编辑
+                                </button>
+                                <button
+                                  onClick={() => setConfirmDeleteId(d.id)}
+                                  className="w-full text-left px-3 py-1.5 text-sm text-red-600 dark:text-red-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                                >
+                                  删除
+                                </button>
+                              </>
                             )}
                           </div>
                         </>
                       )}
                     </div>
                   </div>
+                      </div>
+                    </>
+                  )}
                 </li>
               ))}
             </ul>
