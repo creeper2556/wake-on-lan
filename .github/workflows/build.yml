@@ -3,9 +3,21 @@ name: build
 on:
   push:
     branches: [main]
+    tags: ["v*"]
 
 jobs:
+  meta:
+    runs-on: ubuntu-latest
+    outputs:
+      tags: ${{ steps.meta.outputs.tags }}
+    steps:
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+
   docker-amd64:
+    needs: [meta]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -20,9 +32,10 @@ jobs:
       - uses: docker/build-push-action@v6
         with:
           push: true
-          tags: ghcr.io/${{ github.repository }}:latest-amd64
+          tags: ${{ needs.meta.outputs.tags }}-amd64
 
   docker-arm64:
+    needs: [meta]
     runs-on: ubuntu-24.04-arm
     permissions:
       contents: read
@@ -37,10 +50,10 @@ jobs:
       - uses: docker/build-push-action@v6
         with:
           push: true
-          tags: ghcr.io/${{ github.repository }}:latest-arm64
+          tags: ${{ needs.meta.outputs.tags }}-arm64
 
   merge:
-    needs: [docker-amd64, docker-arm64]
+    needs: [meta, docker-amd64, docker-arm64]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -52,7 +65,11 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - run: |
-          docker buildx imagetools create \
-            -t ghcr.io/${{ github.repository }}:latest \
-            ghcr.io/${{ github.repository }}:latest-amd64 \
-            ghcr.io/${{ github.repository }}:latest-arm64
+          for tag in $(echo "$TAGS"); do
+            docker buildx imagetools create \
+              -t "$tag" \
+              "$tag-amd64" \
+              "$tag-arm64"
+          done
+        env:
+          TAGS: ${{ needs.meta.outputs.tags }}
