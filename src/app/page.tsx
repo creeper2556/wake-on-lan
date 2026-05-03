@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
+import ThemeToggle from "./theme-toggle"
 
 interface Device {
   id: string
@@ -46,6 +47,8 @@ export default function Home() {
   const [customMac, setCustomMac] = useState("")
   const [refreshing, setRefreshing] = useState(false)
   const [refreshingIP, setRefreshingIP] = useState(false)
+  const [confirmLogout, setConfirmLogout] = useState(false)
+  const [showManualAdd, setShowManualAdd] = useState(false)
 
   // Online status check
   const checkOnline = useCallback(async (devs: Device[]) => {
@@ -148,6 +151,7 @@ export default function Home() {
     setIp("")
     fetchWithStatus()
     setView("list")
+    setShowManualAdd(false)
   }
 
   const confirmScanned = async (entry: ScanEntry, idx: number) => {
@@ -252,23 +256,42 @@ export default function Home() {
         <h1 className="text-2xl font-semibold tracking-tight">
           Wake-on-LAN
         </h1>
-        {view === "list" ? (
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          {view === "list" ? (
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setView("add")}
+              onClick={() => { setView("add"); setConfirmLogout(false); setShowManualAdd(false) }}
               className="px-3 py-1.5 bg-foreground text-background rounded-md text-sm font-medium hover:opacity-90 transition-opacity"
             >
               添加设备
             </button>
-            <button
-              onClick={async () => {
-                await fetch("/api/login", { method: "DELETE" })
-                window.location.href = "/login"
-              }}
-              className="px-3 py-1.5 rounded-md text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-            >
-              退出
-            </button>
+            {confirmLogout ? (
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={async () => {
+                    await fetch("/api/login", { method: "DELETE" })
+                    window.location.href = "/login"
+                  }}
+                  className="px-3 py-1.5 bg-red-50 text-red-600 border border-red-200 dark:bg-red-950 dark:text-red-400 dark:border-red-800 rounded-md text-sm font-medium hover:bg-red-100 dark:hover:bg-red-900 transition-colors"
+                >
+                  确认退出
+                </button>
+                <button
+                  onClick={() => setConfirmLogout(false)}
+                  className="px-3 py-1.5 bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 rounded-md text-sm font-medium hover:opacity-80 transition-opacity"
+                >
+                  取消
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setConfirmLogout(true)}
+                className="px-3 py-1.5 bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 rounded-md text-sm font-medium hover:opacity-80 transition-opacity"
+              >
+                退出
+              </button>
+            )}
           </div>
         ) : (
           <button
@@ -276,12 +299,15 @@ export default function Home() {
               setView("list")
               setError("")
               setMsg("")
+              setConfirmLogout(false)
+              setShowManualAdd(false)
             }}
-            className="px-3 py-1.5 rounded-md text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+            className="px-3 py-1.5 bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 rounded-md text-sm font-medium hover:opacity-80 transition-opacity"
           >
             ← 返回
           </button>
         )}
+        </div>
       </div>
 
       {error && (
@@ -297,37 +323,59 @@ export default function Home() {
 
       {view === "add" && (
         <>
-          <form onSubmit={addDevice} className="mb-6 space-y-3">
-            <input
-              type="text"
-              placeholder="设备名称"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full px-3 py-2 border border-zinc-200 dark:border-zinc-800 rounded-md bg-transparent text-sm outline-none focus:border-zinc-400 dark:focus:border-zinc-600"
-              required
-            />
-            <input
-              type="text"
-              placeholder="MAC 地址 (例如 AA:BB:CC:DD:EE:FF)"
-              value={mac}
-              onChange={(e) => setMac(formatMacInput(e.target.value))}
-              className="w-full px-3 py-2 border border-zinc-200 dark:border-zinc-800 rounded-md bg-transparent text-sm outline-none font-mono focus:border-zinc-400 dark:focus:border-zinc-600"
-              required
-            />
-            <input
-              type="text"
-              placeholder="IP 地址 (可选)"
-              value={ip}
-              onChange={(e) => setIp(e.target.value)}
-              className="w-full px-3 py-2 border border-zinc-200 dark:border-zinc-800 rounded-md bg-transparent text-sm outline-none font-mono focus:border-zinc-400 dark:focus:border-zinc-600"
-            />
+          <div className="mb-6">
             <button
-              type="submit"
-              className="w-full px-3 py-2 bg-foreground text-background rounded-md text-sm font-medium hover:opacity-90 transition-opacity"
+              onClick={() => setShowManualAdd(!showManualAdd)}
+              className="w-full px-3 py-2 border border-zinc-200 dark:border-zinc-800 rounded-md text-sm hover:bg-zinc-50 dark:hover:bg-zinc-900 transition-colors flex items-center justify-center gap-1"
             >
               手动添加
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                className={`transition-transform ${showManualAdd ? "rotate-180" : ""}`}
+              >
+                <path d="M6 9l6 6 6-6" />
+              </svg>
             </button>
-          </form>
+            {showManualAdd && (
+              <form onSubmit={addDevice} className="mt-3 space-y-3">
+                <input
+                  type="text"
+                  placeholder="设备名称"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full px-3 py-2 border border-zinc-200 dark:border-zinc-800 rounded-md bg-transparent text-sm outline-none focus:border-zinc-400 dark:focus:border-zinc-600"
+                  required
+                />
+                <input
+                  type="text"
+                  placeholder="MAC 地址 (例如 AA:BB:CC:DD:EE:FF)"
+                  value={mac}
+                  onChange={(e) => setMac(formatMacInput(e.target.value))}
+                  className="w-full px-3 py-2 border border-zinc-200 dark:border-zinc-800 rounded-md bg-transparent text-sm outline-none font-mono focus:border-zinc-400 dark:focus:border-zinc-600"
+                  required
+                />
+                <input
+                  type="text"
+                  placeholder="IP 地址 (可选)"
+                  value={ip}
+                  onChange={(e) => setIp(e.target.value)}
+                  className="w-full px-3 py-2 border border-zinc-200 dark:border-zinc-800 rounded-md bg-transparent text-sm outline-none font-mono focus:border-zinc-400 dark:focus:border-zinc-600"
+                />
+                <button
+                  type="submit"
+                  className="w-full px-3 py-2 bg-foreground text-background rounded-md text-sm font-medium hover:opacity-90 transition-opacity"
+                >
+                  添加
+                </button>
+              </form>
+            )}
+          </div>
 
           <div className="mb-6">
             <button

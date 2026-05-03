@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import "./globals.css"
+import Providers from "./providers"
 
 export const metadata: Metadata = {
   title: "Wake-on-LAN",
@@ -14,7 +15,7 @@ export default function RootLayout({
   return (
     <html lang="zh-CN" suppressHydrationWarning>
       <body className="min-h-screen bg-white text-zinc-950 dark:bg-zinc-950 dark:text-zinc-50 antialiased">
-        {children}
+        <Providers>{children}</Providers>
       </body>
     </html>
   )
