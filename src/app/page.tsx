@@ -49,6 +49,8 @@ export default function Home() {
   const [refreshingIP, setRefreshingIP] = useState(false)
   const [confirmLogout, setConfirmLogout] = useState(false)
   const [showManualAdd, setShowManualAdd] = useState(false)
+  const [menuOpenId, setMenuOpenId] = useState<string | null>(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
 
   // Online status check
   const checkOnline = useCallback(async (devs: Device[]) => {
@@ -533,7 +535,7 @@ export default function Home() {
                       <p className="text-xs text-zinc-400 font-mono">{d.mac}</p>
                     </div>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex items-center gap-1">
                     <button
                       onClick={() => wakeDevice(d.id)}
                       disabled={wakingId === d.id}
@@ -541,12 +543,60 @@ export default function Home() {
                     >
                       {wakingId === d.id ? "..." : "唤醒"}
                     </button>
-                    <button
-                      onClick={() => deleteDevice(d.id)}
-                      className="px-2 py-1 text-xs rounded-md text-zinc-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
-                    >
-                      删除
-                    </button>
+                    <div className="relative">
+                      <button
+                        onClick={() => {
+                          setMenuOpenId(menuOpenId === d.id ? null : d.id)
+                          setConfirmDeleteId(null)
+                        }}
+                        className="px-2 py-1 rounded-md text-sm text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                      >
+                        ···
+                      </button>
+                      {menuOpenId === d.id && (
+                        <>
+                          <div
+                            className="fixed inset-0 z-10"
+                            onClick={() => {
+                              setMenuOpenId(null)
+                              setConfirmDeleteId(null)
+                            }}
+                          />
+                          <div className="absolute right-0 top-full mt-1 z-20 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-md shadow-lg py-1 min-w-[120px]">
+                            {confirmDeleteId === d.id ? (
+                              <div className="px-2 py-1 space-y-1">
+                                <p className="text-xs text-zinc-500 px-1">确认删除？</p>
+                                <div className="flex gap-1">
+                                  <button
+                                    onClick={() => {
+                                      deleteDevice(d.id)
+                                      setMenuOpenId(null)
+                                      setConfirmDeleteId(null)
+                                    }}
+                                    className="flex-1 px-2 py-1 text-xs rounded bg-red-50 text-red-600 border border-red-200 dark:bg-red-950 dark:text-red-400 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900 transition-colors font-medium"
+                                  >
+                                    确认
+                                  </button>
+                                  <button
+                                    onClick={() => setConfirmDeleteId(null)}
+                                    className="px-2 py-1 text-xs rounded bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 hover:opacity-80 transition-opacity font-medium"
+                                  >
+                                    取消
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => setConfirmDeleteId(d.id)}
+                                className="w-full text-left px-3 py-1.5 text-sm text-red-600 dark:text-red-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                              >
+                                删除
+                              </button>
+                            )}
+                          </div>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </li>
               ))}
