@@ -43,6 +43,11 @@ function sha256Sync(message: string): string {
   words[(((msgLen + 8) >> 6) + 1) * 16 - 2] = Math.floor(msgBitLen / maxWord)
   words[(((msgLen + 8) >> 6) + 1) * 16 - 1] = msgBitLen
 
+  // 填充数组空洞为 0，防止 slice 时产生 undefined 导致 NaN
+  for (let i = 0; i < words.length; i++) {
+    words[i] |= 0
+  }
+
   for (let i = 0; i < words.length; i += 16) {
     const w: number[] = words.slice(i, i + 16)
     for (let j = 16; j < 64; j++) {
